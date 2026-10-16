@@ -34,9 +34,8 @@ const accidentalLesson=(id,title,variant,sub)=>({...lessonSpec(id,3,title,sub,['
 const minorLesson=(id,title,form,sub)=>({...lessonSpec(id,4,title,sub,[sub,'イ短調から始め、ホ・ニ・ト短調でも確かめます。','4つの形に当てはめず、音ごとの半音を読みます。']),type:'minor',form});
 const SONG_OUTCOMES={song1:'ヘ長調の出だしで、D線とA線の形を切り替える',song2:'3度下がる音と、順に上る音を読み分ける',song3:'ヘ長調のA線とE線で、低い1の指を使う',song4:'八分音符の上り下りと、休符を読み分ける',song5:'隣り合う音をたどり、付点のリズムを読む',song6:'ヘ長調のG・D・A線で、低音へ戻る形を決める'};
 const SIGHT_OUTCOMES=['D線とA線を行き来し、シ♭を低い1で読む','G・D・A線を移り、シ♭とミ♭を読む','調号なしで、G線とD・A線の形を使い分ける','D線とA線で、3と4がくっつく形を使う','臨時記号から、動かす指を決める','上りのド♯と下りのドを、A線の2で読む'];
-const SOURCE_OUTCOMES={source48:'イ長調の旋律を、反復する区間まで続けて読む',source38:'E線の中で、臨時記号に合わせて4つの形を使う'};
 export const LESSONS=[...shapeLessons,
- ...SEVCIK.filter(s=>s.unit===0).map(s=>({...lessonSpec(s.id,s.unit,s.title,'同じ弦で、変える指を選ぶ',['半音の位置が変わる所を見つけます。','動かす指だけを半音変え、同じ音に戻ります。']),type:'source',sourceId:s.id})),
+
  majorLesson('majorOpen','開放弦から始める','2と3がくっつく形で、ト・ニ・イ長調を弾く',['G','D','A']),
  majorLesson('majorThird','3の指から始める','1と2がくっつく形で、ハ・ト長調を弾く',['C','GHigh']),
  majorLesson('majorFirst','1の指から始める','3と4がくっつく形で、イ・ホ・ロ長調を弾く',['AFrom1','E','B']),
@@ -56,9 +55,13 @@ export const LESSONS=[...shapeLessons,
  lessonSpec('chromatic',4,'ニからの半音階','同じ指で、半音ずつ場所を変える',['レから上のレまで半音ずつ進み、戻ります。','同じ指でも、音ごとに場所が変わります。','♯と♮を読み、半音の幅を耳で確かめます。']),
  ...SONGS.map(s=>({...lessonSpec(s.id,5,s.title,SONG_OUTCOMES[s.id],['調号を読み、使う弦の指の形を思い浮かべます。','まず1音ずつ音程を確かめ、次はテンポで通します。','弾けたら、指番号を隠して同じ曲を読みます。']),type:'song',songId:s.id})),
  ...['ヘ長調で読む','変ロ長調で読む','ハ長調で読む','ホ長調で読む','4つの形を切り替える','ニ短調で読む'].map((title,i)=>({...lessonSpec(i?'sight'+(i+1):'sight',6,title,SIGHT_OUTCOMES[i],['調号・臨時記号・移弦する所を先に確かめます。','ヒントなしで読み、困ったときは指番号を表示します。','止まった小節を覚えて、もう一度確かめます。']),type:'sight',problem:String(i+1)})),
- ...SEVCIK.filter(s=>s.unit===6).map(s=>({...lessonSpec(s.id,s.unit,s.title,SOURCE_OUTCOMES[s.id],['調号と臨時記号を読み、使う指を確かめます。','1音ずつ弾いてから、テンポで通してみます。']),type:'source',sourceId:s.id}))
+ ...SEVCIK.map(s=>({...lessonSpec(s.id,s.unit,s.title,s.sub,['調号と臨時記号を読み、使う指を確かめます。','1音ずつ弾いてから、テンポで通してみます。']),type:'source',sourceId:s.id,sourceSection:s.section}))
 ];
-export function chapterItems(unit){return LESSONS.filter(l=>l.unit===unit);}
+export const SOURCE_GROUPS={F:{title:'開放弦と1の半音を使う',sub:'低い1を使う移弦と旋律を練習する'},G:{title:'3つの半音の位置を組み合わせる',sub:'開放弦と1・1と2・2と3の間を読み替える'},H:{title:'3と4の半音を使う',sub:'高い3と4の間隔を、拍子の違う旋律で保つ'},I:{title:'4つの形を組み合わせる',sub:'4種類の半音の位置を、音の動きに合わせて選ぶ'}};
+export function chapterItems(unit){
+ const items=LESSONS.filter(l=>l.unit===unit),sections=[...new Set(items.filter(l=>l.type==='source').map(l=>l.sourceSection))];
+ return [...items.filter(l=>l.type!=='source'),...sections.map(section=>({id:'sources'+section,menu:'sources'+section,...SOURCE_GROUPS[section],children:items.filter(l=>l.sourceSection===section)}))];
+}
 export function quizDeck(lesson){return QUIZZES.map((q,i)=>({q,id:String(i+1)})).filter(({q})=>lesson.deck==='natural'?q.sig===0:lesson.deck==='flat'?q.sig<0:lesson.deck==='sharp'?q.sig>0:true).map(x=>x.id);}
 export function lessonPage(){return null;}
 const choose=(v,a,f)=>a.includes(String(v))?String(v):f;
@@ -114,7 +117,7 @@ export function makeExercise(id,raw={}){const l=LESSONS.find(l=>l.id===id)||LESS
  else if(type==='pivot')notes=[...shapeSeq([0,1,0,2,0,3,0,4,0,4,0,3,0,2,0,1]),n(0,4)];
  else if(type==='triples')notes=[...shapeSeq([0,1,2,1,1,2,3,2,2,3,4,3,4,3,2,3,3,2,1,2,2,1,0,1]),n(0,4)];
  else if(type==='song'){const song=SONGS.find(s=>s.id===l.songId),v=song.variants[o.songKey];notes=v.notes.map(x=>x.rest?makeRest(x.beats):spelledNote(x.string,x.finger,x.spelling,x.beats,{signature:v.signature,key:tonalKey(v.tonic),pattern:signaturePattern(x.string,v.signature),slurs:x.slurs}));}
- else if(type==='source'){const source=SEVCIK.find(s=>s.id===l.sourceId);notes=source.playOrder.flatMap((bar,playBar)=>source.bars[bar].map(x=>x.rest?{...makeRest(x.beats),signature:source.signature,sourceBar:bar+1}:spelledNote(x.string,x.finger,x.spelling,x.beats,{signature:source.signature,key:tonalKey(source.tonic),pattern:'individual',sourceBar:bar+1,printedFinger:x.printedFinger,slurs:x.slurs})));}
+ else if(type==='source')return sourceExercise(SEVCIK.find(s=>s.id===l.sourceId));
  else if(type==='major')notes=scaleExercise(MAJORS[o.scale]);
  else if(type==='lower4')notes=['none','34low','none','34low'].flatMap(pattern=>[1,2,3,4].map(f=>makeNote(o.string,f,1,{pattern})));
  else if(type==='minor')notes=scaleExercise(MINORS[o.minor],o.form);
@@ -143,6 +146,41 @@ export function makeExercise(id,raw={}){const l=LESSONS.find(l=>l.id===id)||LESS
  if(!notes.length)throw new Error('Unknown lesson '+type);
  return withTimeline(notes.map(n=>n.rest?n:{...n,key:n.key||tonalKey((STRINGS[n.string].midi+(n.pattern==='none'?8:n.pattern==='34low'?1:n.pattern==='12'?3:n.pattern==='34'?7:0))%12)}));
 }
-export function withTimeline(notes){let at=0;return notes.map((n,index)=>{const v={...n,index,start:at,end:at+n.beats,bar:Math.floor(at/4),meter:4};at+=n.beats;return v;});}
+// 原譜の音価は四分音符=1で保存。時間と拍表示だけを拍子の分母で換算する。
+export function withTimeline(notes,time={beats:4,unit:4}){
+ let at=0,previousBar=-1,barStart=0;
+ const timed=notes.map((n,index)=>{
+  const beats=n.beats/(4/time.unit),bar=n.playBar??Math.floor(at/time.beats);
+  if(bar!==previousBar){barStart=n.playBar===undefined?bar*time.beats:at;previousBar=bar;}
+  const barDuration=n.barQuarters===undefined?time.beats:n.barQuarters/(4/time.unit);
+  const beatInBar=at-barStart+(n.pickup?time.beats-barDuration:0);
+  const v={...n,index,durationQuarters:n.beats,beats,start:at,end:at+beats,bar,barStart,barDuration,beatInBar,meter:time.beats,beatUnit:time.unit};at+=beats;return v;
+ });
+ const open=new Map();
+ for(const n of timed)for(const kind of ['slurs','ties'])for(const mark of n[kind]||[]){
+  const key=kind+mark.number;
+  if(mark.type==='start')open.set(key,n);
+  else{const first=open.get(key);open.delete(key);if(!first)continue;
+   const phrase={start:first.index,end:n.index,startStep:first.step,endStep:n.step,kind};
+   for(let i=first.index;i<=n.index;i++)(timed[i].phrases??=[]).push(phrase);
+   if(kind==='ties'){first.tieToNext=true;n.tieFromPrevious=true;}
+  }
+ }
+ return timed;
+}
+export function sourceExercise(source,expand=true){
+ const time=source.time||{beats:4,unit:4},order=expand?source.playOrder:source.bars.map((_,i)=>i);
+ const raw=order.flatMap((bar,playBar)=>{
+  const barQuarters=source.bars[bar].reduce((s,n)=>s+n.beats,0);
+  return source.bars[bar].map((x,i)=>{
+   const extra={signature:source.signature,key:tonalKey(source.tonic,source.form||'major'),pattern:'individual',sourceBar:bar+1,playBar,barQuarters,pickup:bar===0&&barQuarters<time.beats*4/time.unit,printedFinger:x.printedFinger,fingerAnnotation:x.fingerAnnotation,slurs:x.slurs,ties:x.ties};
+   if(!expand){extra.repeatStart=i===0&&(source.repeats||[]).some(r=>r.start===bar);extra.repeatEnd=i===source.bars[bar].length-1&&(source.repeats||[]).some(r=>r.end===bar);}
+   return x.rest?{...makeRest(x.beats),...extra}:spelledNote(x.string,x.finger,x.spelling,x.beats,extra);
+  });
+ });
+ return withTimeline(raw,time);
+}
+export function beatAt(note,position=note.start){return Math.floor(note.beatInBar+position-note.start+1e-8)%note.meter+1;}
+export function tempoUnit(note){return ({2:'二分音符',4:'四分音符',8:'八分音符'})[note?.beatUnit||4];}
 export function noteTitle(n){return n.rest?'休み':n.string+'線・'+n.name;}
 export function instructionFor(n,previous){if(n.rest)return '音を止めて、次の指を用意しよう。';if(previous&&previous.string===n.string&&previous.finger===n.finger&&previous.midi!==n.midi)return `${n.finger}の指を半音${n.midi>previous.midi?'上げて':'下げて'}、${n.name}へ。`;if(n.finger===0)return '指を離して、開放弦を弾こう。';if(n.pattern==='none')return n.finger===1?`開放弦から半音上の${n.name}。1の指を低く置こう。`:`${n.finger-1}から全音あけて、${n.finger}の指を置こう。`;if(n.pattern==='individual')return `${n.string}線の${n.finger}の指で、${n.name}を確かめよう。`;return PATTERNS[n.pattern].label+'。'+n.name+'を聴こう。';}
