@@ -19,14 +19,14 @@ const NOTE_KANA=['ド','レ','ミ','ファ','ソ','ラ','シ'],PCS=[0,2,4,5,7,9,
 export const CHAPTERS=['どの指もくっつかない形','始める指と長音階','調号から形を読む','臨時記号を読む','短音階と半音階','曲で確かめる','ヒントなしで読む'];
 export const CHAPTER_SUB=['低い1と、指の間の全音を確かめる','始める指から、使う形を見つける','楽譜を見て答え、同じ音を弾く','変わる音と、元に戻る音を読む','上りと下りで変わる音を聴く','知っている歌を、違う調で弾く','形の図を離れて、楽譜から弾く'];
 export const FORM_LABELS=['①','②','③','④','⑤','⑥','⑦'];
-export const COMMON_MENU=[['fingers','指の間隔を確かめる','A線のシ♭・E線のファ。4本の弦から選ぶ'],['add','指を1本ずつ確認する','1・2・3・4の指を選んで確かめる'],['variety','色々な練習','指を離す・往復する動きを練習する']];
+export const COMMON_MENU=[['fingers','この形をつかむ','開放弦と1の指の半音を聴く'],['add','指を1本ずつ確認する','1・2・3・4の指を選んで確かめる'],['variety','色々な練習','指を離す・往復する動きを練習する']];
 const VARIETY=[['place','4本の指を置いて、離していく'],['pairs','2本の指を組み合わせる'],['keep','形を保って続ける'],['pivot','開放弦と交互に弾く'],['triples','3音ずつ上り下り']];
 const SHAPE_OUTCOMES={fingers:'開放弦と1の指の半音を聴く',add1:'開放弦と低い1を往復する',add2:'1と2の間を全音にする',add3:'2と3の間を全音にする',add4:'3と4の間を全音にする',place:'4から1へ、順に指を離す',pairs:'離れた指へ移っても同じ音に戻る',keep:'音の順番を変えても、指の場所を保つ',pivot:'指を離したあとも、同じ場所に戻る',triples:'3つの音を続けて、音程をそろえる'};
 export function commonSteps(exercise){
  const intro='1〜4の指は、どの隣同士も全音です。開放弦と1の指の間だけは半音です。';
  const copies={fingers:['まずA線のラ・シ♭・ド・レ・ミを弾きます。次の画面でG・D・E線も選べます。','1の指をナット寄りに置きます。手全体をずらさず、2・3・4の場所を確かめます。',intro],add1:['まず1・2・3・4を弾き、次に1だけを半音下げます。A線ではシからシ♭、E線ではファ♯からファです。','2・3・4は同じ場所です。そのあと開放弦と、低い1を往復します。',intro],add2:['0・1・2を弾き、1と2を往復します。','低い1を保ち、2との間を全音あけます。',intro],add3:['1・2・3を弾き、2と3を往復します。','2と3も全音です。近づけすぎないように聴きます。',intro],add4:['2・3・4を弾き、4から1へ下ります。','3と4も全音です。A線の4はミで、ミ♭ではありません。',intro],place:['1・2・3・4を弾いて場所を確かめます。','休符で4本を用意し、4・3・2・1と離していきます。',intro],pairs:['1〜4の指を、2本ずつ組み合わせて往復します。','飛び越す指があっても、同じ音へ戻ります。',intro],keep:['①〜⑦から、繰り返す型を選びます。','型が変わっても、指の場所は同じです。',intro],pivot:['開放弦と、1・2・3・4の指を交互に弾きます。','指を離したあとも、同じ場所に戻ります。',intro],triples:['隣り合う3音で、上ったり下りたりします。','1〜4の指同士の間は、どこも全音です。',intro]};return copies[exercise]||[intro];
 }
-const shapeLessons=['fingers','add1','add2','add3','add4',...VARIETY.map(x=>x[0])].map(exercise=>({id:exercise,type:exercise,exercise,unit:0,pattern:'none',menu:exercise.startsWith('add')?'add':exercise==='fingers'?'fingers':'variety',title:exercise==='fingers'?'指の間隔を確かめる':exercise.startsWith('add')?exercise.at(-1)+'の指を確かめる':VARIETY.find(x=>x[0]===exercise)[1],sub:SHAPE_OUTCOMES[exercise],steps:commonSteps(exercise)}));
+const shapeLessons=['fingers','add1','add2','add3','add4',...VARIETY.map(x=>x[0])].map(exercise=>({id:exercise,type:exercise,exercise,unit:0,pattern:'none',menu:exercise.startsWith('add')?'add':exercise==='fingers'?'fingers':'variety',title:exercise==='fingers'?'この形をつかむ':exercise.startsWith('add')?exercise.at(-1)+'の指を確かめる':VARIETY.find(x=>x[0]===exercise)[1],sub:SHAPE_OUTCOMES[exercise],steps:commonSteps(exercise)}));
 const lessonSpec=(id,unit,title,sub,steps)=>({id,type:id,unit,title,sub,steps});
 const majorLesson=(id,title,sub,scales)=>({...lessonSpec(id,1,title,sub,[sub,'弦が変わったら、その弦の指の間隔を確かめます。','音階を上って下り、始めの音へ戻ります。']),type:'major',scales});
 const quizLesson=(id,title,sub,deck)=>({...lessonSpec(id,2,title,sub,['調号を見て、指定された弦の形を選びます。','答えと理由を確かめ、同じ楽譜を弾きます。','弾き終わったら、次の問題に進みます。']),type:'keyQuiz',deck});
@@ -57,10 +57,20 @@ export const LESSONS=[...shapeLessons,
  ...['ヘ長調で読む','変ロ長調で読む','ハ長調で読む','ホ長調で読む','4つの形を切り替える','ニ短調で読む'].map((title,i)=>({...lessonSpec(i?'sight'+(i+1):'sight',6,title,SIGHT_OUTCOMES[i],['調号・臨時記号・移弦する所を先に確かめます。','ヒントなしで読み、困ったときは指番号を表示します。','止まった小節を覚えて、もう一度確かめます。']),type:'sight',problem:String(i+1)})),
  ...SEVCIK.map(s=>({...lessonSpec(s.id,s.unit,s.title,s.sub,['調号と臨時記号を読み、使う指を確かめます。','1音ずつ弾いてから、テンポで通してみます。']),type:'source',sourceId:s.id,sourceSection:s.section}))
 ];
-export const SOURCE_GROUPS={F:{title:'開放弦と1の半音を使う',sub:'低い1を使う移弦と旋律を練習する'},G:{title:'3つの半音の位置を組み合わせる',sub:'開放弦と1・1と2・2と3の間を読み替える'},H:{title:'3と4の半音を使う',sub:'高い3と4の間隔を、拍子の違う旋律で保つ'},I:{title:'4つの形を組み合わせる',sub:'4種類の半音の位置を、音の動きに合わせて選ぶ'}};
+export const SOURCE_GROUPS={
+ F:{title:'旋律で弾く',sub:'低い1を使う旋律を弾く'},
+ G:{title:'旋律で弾く',sub:'3つの半音の位置を読み替えて弾く'},
+ H:{title:'旋律で弾く',sub:'高い3と4の半音を使う旋律を弾く'},
+ I:{title:'旋律で弾く',sub:'4つの形を切り替えて旋律を弾く'}
+};
 export function chapterItems(unit){
  const items=LESSONS.filter(l=>l.unit===unit),sections=[...new Set(items.filter(l=>l.type==='source').map(l=>l.sourceSection))];
- return [...items.filter(l=>l.type!=='source'),...sections.map(section=>({id:'sources'+section,menu:'sources'+section,...SOURCE_GROUPS[section],children:items.filter(l=>l.sourceSection===section)}))];
+ const group=(menu,title,sub,children)=>({id:menu,menu,title,sub,children}),pick=id=>items.find(l=>l.id===id);
+ let rows=items.filter(l=>l.type!=='source');
+ if(unit===0)rows=COMMON_MENU.map(([menu,title,sub])=>menu==='fingers'?pick('fingers'):group(menu,title,sub,items.filter(l=>l.menu===menu)));
+ if(unit===1)rows=[group('majorStarts','始める指で決まる長音階','開放弦・3・1・2から始める音階を弾く',['majorOpen','majorThird','majorFirst','major'].map(pick)),group('low4','低い4','4を半音下げ、長音階で使う',['lower4','majorLow4'].map(pick))];
+ if(unit===6)rows=[group('sightMajor','長調で読む','ヘ・変ロ・ハ・ホ長調をヒントなしで読む',['sight','sight2','sight3','sight4'].map(pick)),pick('sight6'),pick('sight5')];
+ return [...rows,...sections.map(section=>({id:'sources'+section,menu:'sources'+section,...SOURCE_GROUPS[section],children:items.filter(l=>l.sourceSection===section)}))];
 }
 export function quizDeck(lesson){return QUIZZES.map((q,i)=>({q,id:String(i+1)})).filter(({q})=>lesson.deck==='natural'?q.sig===0:lesson.deck==='flat'?q.sig<0:lesson.deck==='sharp'?q.sig>0:true).map(x=>x.id);}
 export function lessonPage(){return null;}
