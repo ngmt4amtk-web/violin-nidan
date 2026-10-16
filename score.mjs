@@ -2,7 +2,31 @@ import {STRINGS,signatureAlteration} from './content.mjs';
 import {CLEF_PATH,SHARP_PATH,FLAT_PATH,NATURAL_PATH,NOTEHEAD_PATH,WHOLE_PATH,HALF_PATH,FLAG_UP_PATH,FLAG_DOWN_PATH,REST_WHOLE_PATH,REST_HALF_PATH,REST_QUARTER_PATH,REST_EIGHTH_PATH} from './glyphs.mjs';
 
 export function escapeHTML(value){return String(value).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));}
+// 本文の音楽記号にも共有Bravuraの輪郭を使う。OSの代替フォントに依存しない。
+export function musicText(value){
+ return replaceMusicText(escapeHTML(value));
+}
+function replaceMusicText(value){
+ return value.replace(/(ファ|[ドレミソラシ])?([♭♯♮])/g,(_,name='',c)=>{
+  const paths={'♭':FLAT_PATH,'♯':SHARP_PATH,'♮':NATURAL_PATH};
+  const bounds={'♭':'-0.02 -1.776 0.944 2.496','♯':'-0.02 -1.42 1.036 2.832','♮':'-0.02 -1.384 0.712 2.744'};
+  return `<span class="accidental-word">${name}<span class="sr-only">${c}</span><svg class="text-accidental" data-symbol="${c}" viewBox="${bounds[c]}" aria-hidden="true"><path d="${paths[c]}" fill="currentColor"/></svg></span>`;
+ });
+}
+export function typesetText(html){
+ let skip=0;
+ return html.split(/(<[^>]+>)/g).map(part=>{
+  if(part.startsWith('<')){
+   if(/^<(svg|select|textarea|script|style|pre)\b/.test(part))skip++;
+   if(/^<\/(svg|select|textarea|script|style|pre)>/.test(part))skip--;
+   return part;
+  }
+  return skip?part:replaceMusicText(part);
+ }).join('');
+}
 const STAFF_SPACE=11;
+// Bravura timeSig4 (U+E084)。出典と輪郭の照合は validation/typography-provenance.json。
+const TIME_FOUR_PATH='M1.448 0.296V-0.56C1.448 -0.592 1.444 -0.628 1.4 -0.628C1.364 -0.628 1.344 -0.62 1.32 -0.592L0.94 -0.132C0.924 -0.112 0.904 -0.088 0.904 -0.04V0.296H0.364C0.684 0.024 1.324 -0.884 1.336 -0.928C1.336 -0.936 1.34 -0.94 1.34 -0.948C1.34 -0.98 1.312 -1.004 1.28 -1.004C1.244 -1.004 1.08 -0.996 1.008 -0.996C0.936 -0.996 0.756 -1.004 0.724 -1.004C0.688 -1.004 0.632 -0.992 0.632 -0.928C0.632 -0.432 0.24 0.124 0.12 0.292L0.096 0.324C0.096 0.328 0.092 0.332 0.092 0.336C0.084 0.352 0.08 0.368 0.08 0.38C0.08 0.42 0.112 0.448 0.16 0.448H0.904V0.7C0.904 0.808 0.816 0.84 0.744 0.84C0.68 0.84 0.652 0.876 0.652 0.916C0.652 0.956 0.668 1.0 0.728 1.0H1.58C1.62 1.0 1.66 0.972 1.66 0.916C1.66 0.86 1.612 0.836 1.572 0.836C1.532 0.836 1.448 0.812 1.448 0.684V0.448H1.74C1.78 0.448 1.8 0.42 1.8 0.372C1.8 0.324 1.784 0.296 1.74 0.296Z';
 const svgNumber=value=>String(Math.round(value*1000)/1000);
 const pitchY=(bottom,step)=>bottom-step*STAFF_SPACE/2;
 function glyph(path,x,y,color,role){return `<path data-role="${role}" d="${path}" transform="translate(${svgNumber(x)} ${svgNumber(y)}) scale(${STAFF_SPACE})" fill="${color}"/>`;}
@@ -16,7 +40,7 @@ export function noteGlyph(note,x,bottom,settings={}){
   const [path,width,step]=rests[note.beats]||rests[1];
   return glyph(path,x-width*STAFF_SPACE/2,pitchY(bottom,step),'#263d38','rest');
  }
- const tones=note.chord||[note],head=note.beats===4?WHOLE_PATH:note.beats===2?HALF_PATH:NOTEHEAD_PATH;
+ const tones=note.chord||[note],head=note.beats===4?WHOLE_PATH:note.beats>=2?HALF_PATH:NOTEHEAD_PATH;
  const headWidth=note.beats===4?1.688:1.18,left=x-headWidth*STAFF_SPACE/2;
  const colorFor=n=>settings.colors===false?'#263d38':STRINGS[n.string].color;
  let out='';const ledgers=new Set();
@@ -27,6 +51,7 @@ export function noteGlyph(note,x,bottom,settings={}){
   const accidental=Object.hasOwn(n,'accidental')?n.accidental:(n.name.includes('♯')?'sharp':n.name.includes('♭')?'flat':null);
   if(accidental)out+=`<g data-accidental="${accidental}">${glyph({sharp:SHARP_PATH,flat:FLAT_PATH,natural:NATURAL_PATH}[accidental],x-1.72*STAFF_SPACE,y,color,'accidental')}</g>`;
   out+=glyph(head,left,y,color,'notehead');
+  if(note.beats===1.5||note.beats===3)out+=`<circle data-role="augmentation-dot" cx="${x+12}" cy="${y-(n.step%2===0?STAFF_SPACE/2:0)}" r="1.9" fill="${color}"/>`;
  }
  if(note.beats<4){
   const up=(Math.min(...tones.map(n=>n.step))+Math.max(...tones.map(n=>n.step)))/2<4;
@@ -36,72 +61,64 @@ export function noteGlyph(note,x,bottom,settings={}){
   out+=`<path data-role="stem" d="M${svgNumber(stemX)} ${svgNumber(start)}V${svgNumber(end)}" fill="none" stroke="${color}" stroke-width="${.13*STAFF_SPACE}"/>`;
   if(note.beats===.5)out+=glyph(up?FLAG_UP_PATH:FLAG_DOWN_PATH,stemX-.065*STAFF_SPACE,end+(up?-.04:.132)*STAFF_SPACE,color,'flag');
  }
- if(settings.fingers!==false){
+ const printFinger=Object.hasOwn(note,'printedFinger')?note.printedFinger:note.finger;
+ if(settings.fingers!==false&&printFinger!==null){
   const top=Math.min(bottom-4*STAFF_SPACE,...tones.map(n=>pitchY(bottom,n.step)-STAFF_SPACE*.5));
-  const y=top-.52*STAFF_SPACE;
-  out+=`<text data-role="finger" x="${x}" y="${svgNumber(y)}" text-anchor="middle" font-size="${.95*STAFF_SPACE}" font-weight="700">${tones.map((n,i)=>`<tspan fill="${colorFor(n)}">${i?' · ':''}${n.finger}</tspan>`).join('')}</text>`;
+  const up=tones.every(n=>n.step<4)&&note.beats<4;
+  const y=Math.min(top-.52*STAFF_SPACE,up?Math.min(...tones.map(n=>pitchY(bottom,n.step)))-4.1*STAFF_SPACE:Infinity,note.slurs?.length?pitchY(bottom,note.step)-30:Infinity);
+  out+=`<text data-role="finger" x="${x}" y="${svgNumber(y)}" text-anchor="middle" font-size="${.95*STAFF_SPACE}" font-weight="700" fill="${colorFor(note)}">${printFinger}</text>`;
  }
  return out;
 }
+export function renderNext(note,settings={}){
+ if(!note)return '';
+ return `<svg class="next-score" viewBox="0 0 100 150" role="img" aria-label="次の音の譜面">${staffLines(100,93)}${noteGlyph(note,54,93,{...settings,fingers:false})}</svg>`;
+}
 export function staffLines(width,bottom=96){return Array.from({length:5},(_,i)=>`<path data-role="staff-line" d="M12 ${bottom-i*STAFF_SPACE}H${width-12}" stroke="#a1aaa3" stroke-width="${STAFF_SPACE/8}"/>`).join('');}
 export function renderSingle(note,settings={}){
- return `<svg class="single-score" viewBox="0 0 310 170" role="img" aria-label="${escapeHTML(note.rest?'休符':note.chord?.map(n=>n.name).join('と')||note.name)}、${note.beats}拍">${staffLines(310,114)}${clef(23,114)}${noteGlyph(note,177,114,settings)}${settings.names!==false?`<text x="177" y="160" text-anchor="middle" font-size="13" fill="#65746d">${escapeHTML(note.rest?'休み':note.chord?.map(n=>n.name).join(' ＋ ')||note.name)}</text>`:''}</svg>`;
+ return `<svg class="single-score" viewBox="0 0 310 170" role="img" aria-label="${escapeHTML(note.rest?'休符':note.chord?.map(n=>n.name).join('と')||note.name)}、${note.beats}拍">${staffLines(310,114)}${clef(23,114)}${noteGlyph(note,177,114,settings)}${(settings.names!==false||settings.colors!==false)?`<text x="177" y="160" text-anchor="middle" font-size="13" fill="#65746d">${escapeHTML(note.rest?'休み':note.chord?.map(n=>n.name).join(' ＋ ')||note.name)}</text>`:''}</svg>`;
 }
 export function renderScore(notes,settings={},group=0){
- const visible=group===null?notes:notes.filter(n=>n.bar>=group*4&&n.bar<group*4+4),bars=[...new Set(visible.map(n=>n.bar))];
- return bars.map(bar=>{
-  const ns=visible.filter(n=>n.bar===bar),meter=ns[0].meter||4,sig=ns[0].signature||0,kw=sig?Math.abs(sig)*11+18:0,width=Math.max(350,ns.length*49+96+kw),left=76+kw,space=(width-left-24)/Math.max(meter,ns.reduce((s,n)=>s+n.beats,0));
-  const noteX=n=>left+(n.start%meter)*space+13;
-  // 選択の背景を先に描き、五線・加線・音符をその上に保つ。
-  let body=ns.map(n=>`<rect data-score-index="${n.index}" class="note-highlight" x="${noteX(n)-21}" y="19" width="43" height="120" rx="12" fill="transparent"/>`).join('');
-  body+=staffLines(width)+clef(14,96)+keySignature(sig,50,96);
-  if(bar===0)body+=`<g data-role="time-signature" fill="#263d38" text-anchor="middle" font-family="serif" font-weight="700" font-size="24"><text x="${52+kw}" y="73">${meter}</text><text x="${52+kw}" y="95">4</text></g>`;
-  const accidentals=new Map();
-  for(const n of ns){const x=noteX(n);
-   const decorate=tone=>decorateAccidental(tone,accidentals,sig);
-   const printed=n.rest?n:n.chord?{...n,chord:n.chord.map(decorate)}:decorate(n);
-   body+=`<g data-score-index="${n.index}">${noteGlyph(printed,x,96,settings)}${settings.names!==false?`<text x="${x}" y="159" font-size="12" fill="#69756e" text-anchor="middle">${escapeHTML(n.rest?'休':n.chord?.map(z=>z.string).join('+')||n.string)}</text>`:''}</g>`;
-  }
-  body+=`<path d="M${width-12} 52V96" stroke="#66746d" stroke-width="1.2"/>`;
-  return `<svg class="score-bar" viewBox="0 0 ${width} 174" role="img" aria-label="${bar+1}小節目">${body}</svg>`;
- }).join('');
+ const visible=group===null?notes:notes.filter(n=>n.bar>=group*4&&n.bar<group*4+4);
+ return renderSystems(visible,settings,1,{minWidth:340}).replaceAll('class="score-system"','class="score-bar"');
 }
 
-// 連続した五線に複数小節を組む。字形・音高・加線は従来の共通描画を使う。
-export function renderSystems(notes,settings={},barsPerSystem=3,layout={}){
- const bars=[...new Set(notes.map(n=>n.bar))],systems=[];
- // プレビューは、加線・下向きの符幹に必要な余白だけを残す。
- const namesY=layout.compact?Math.max(118,...notes.filter(n=>!n.rest).map(n=>{
-  const tones=n.chord||[n],steps=tones.map(t=>t.step);
-  let low=Math.max(...steps.map(step=>pitchY(90,step)));
-  if(n.beats<4&&(Math.min(...steps)+Math.max(...steps))/2>=4)low+=3.5*STAFF_SPACE;
-  return low+18;
- })):136;
- const viewTop=layout.compact?7:0,viewHeight=namesY+10-viewTop;
- // 低い音の加線が増えても縦に間延びしない、横長の組段にする。
- const minimumWidth=Math.max(layout.minWidth||0,layout.compact?Math.ceil(viewHeight*3.1):0);
- for(let start=0;start<bars.length;start+=barsPerSystem){
-  const group=bars.slice(start,start+barsPerSystem),bottom=90,sig=notes.find(n=>n.bar===group[0])?.signature||0,kw=sig?Math.abs(sig)*11+18:0;
-  const plans=group.map(bar=>({bar,ns:notes.filter(n=>n.bar===bar)}));
-  // 少ない音でも五線を横幅まで使う。字形の縦横比は変えず、小節の余白を広げる。
-  const naturalWidths=plans.map(plan=>Math.max(82,plan.ns.length*34+16));
-  const extra=Math.max(0,minimumWidth-86-kw-naturalWidths.reduce((a,b)=>a+b,0))/plans.length;
-  let cursor=72+kw;
-  for(const [i,plan] of plans.entries()){plan.x=cursor;plan.width=naturalWidths[i]+extra;cursor+=plan.width;}
-  const width=cursor+14;let backgrounds='',music='';
-  for(const plan of plans){const {bar,ns,x,width:bw}=plan,meter=ns[0].meter||4,accidentals=new Map();
-   const noteX=n=>ns.length===1?x+bw/2:x+20+(n.start-ns[0].start)*(bw-32)/Math.max(ns.reduce((s,n)=>s+n.beats,0),meter);
-   for(const n of ns){const nx=noteX(n);
-    backgrounds+=`<rect data-score-index="${n.index}" class="note-highlight" x="${nx-15}" y="23" width="30" height="99" rx="5" fill="transparent"/>`;
-    const decorate=t=>decorateAccidental(t,accidentals,sig);
-    const printed=n.rest?n:n.chord?{...n,chord:n.chord.map(decorate)}:decorate(n);
-    music+=`<g data-score-index="${n.index}">${noteGlyph(printed,nx,bottom,settings)}${settings.names!==false?`<text x="${nx}" y="${namesY}" text-anchor="middle" font-size="10" fill="#697384">${escapeHTML(n.rest?'休':n.chord?.map(z=>z.string).join('+')||n.string)}</text>`:''}</g>`;
-   }
-   music+=`<path data-role="barline" d="M${x+bw} 46V90" stroke="#657083" stroke-width="1.2"/>`;
+function slurPaths(notes,positions,bottom){
+ let out='',open=new Map();
+ for(const n of notes){if(n.rest)continue;for(const mark of n.slurs||[]){
+  if(mark.type==='start')open.set(mark.number,n);
+  else if(mark.type==='stop'){
+   const first=open.get(mark.number);open.delete(mark.number);if(!first)continue;
+   const x1=positions.get(first.index),x2=positions.get(n.index);if(x1===undefined||x2===undefined)continue;
+   const y=Math.min(pitchY(bottom,first.step),pitchY(bottom,n.step))-12;
+   out+=`<path data-role="slur" d="M${x1} ${y} Q${(x1+x2)/2} ${y-16} ${x2} ${y}" fill="none" stroke="#263d38" stroke-width="1.3"/>`;
   }
-  const meter=plans[0].ns[0].meter||4;
-  systems.push({width,label:`${group[0]+1}から${group.at(-1)+1}小節`,body:`${backgrounds}${staffLines(width,bottom)}${clef(17,bottom)}${keySignature(sig,50,bottom)}${start===0?`<g data-role="time-signature" text-anchor="middle" font-family="serif" font-weight="700" font-size="23" fill="#202839"><text x="${54+kw}" y="68">${meter}</text><text x="${54+kw}" y="90">4</text></g>`:''}${music}`});
+ }}return out;
+}
+export function renderSystems(notes,settings={},barsPerSystem=2,layout={}){
+ const bars=[...new Set(notes.map(n=>n.bar))],groups=[];
+ for(let i=0;i<bars.length;){let group=[bars[i++]];
+  while(i<bars.length&&group.length<barsPerSystem&&notes.filter(n=>group.includes(n.bar)||n.bar===bars[i]).length<=10)group.push(bars[i++]);
+  groups.push(group);
  }
- const widest=Math.max(...systems.map(s=>s.width));
- return systems.map(s=>`<svg class="score-system" viewBox="0 ${viewTop} ${svgNumber(widest)} ${svgNumber(viewHeight)}" role="img" aria-label="${s.label}">${s.body}</svg>`).join('');
+ return groups.map(group=>{
+  const ns=notes.filter(n=>group.includes(n.bar)),bottom=102,sig=ns[0]?.signature||0,kw=Math.abs(sig)*11;
+  const prefix=76+kw,plans=group.map(bar=>({bar,ns:ns.filter(n=>n.bar===bar)}));
+  const widths=plans.map(p=>Math.max(72,p.ns.reduce((a,n)=>a+(n.beats===.5?29:36),0)+18));
+  const extra=Math.max(0,(layout.minWidth||340)-prefix-14-widths.reduce((a,b)=>a+b,0))/plans.length;
+  let cursor=prefix;plans.forEach((p,i)=>{p.x=cursor;p.width=widths[i]+extra;cursor+=p.width;});
+  const width=cursor+14,positions=new Map();let background='',music='';
+  for(const p of plans){const acc=new Map();let at=p.x+20;
+   const weight=p.ns.reduce((a,n)=>a+(n.beats===.5?29:36),0);
+   for(const n of p.ns){const x=at;positions.set(n.index,x);at+=(p.width-20)*(n.beats===.5?29:36)/weight;
+    background+=`<rect data-score-index="${n.index}" class="note-highlight" x="${x-16}" y="18" width="32" height="123" rx="4" fill="transparent"/>`;
+    const printed=n.rest?n:decorateAccidental(n,acc,sig);
+    music+=`<g data-score-index="${n.index}">${noteGlyph(printed,x,bottom,settings)}${settings.names!==false||settings.colors!==false?`<text data-role="string-name" x="${x}" y="153" text-anchor="middle" font-size="11" fill="#485466">${n.rest?'休':n.string}</text>`:''}</g>`;
+   }
+   music+=`<path data-role="barline" d="M${p.x+p.width} 58V102" stroke="#657083" stroke-width="1.2"/>`;
+  }
+  music+=slurPaths(ns,positions,bottom);
+  const time=group[0]===0?`<g data-role="time-signature" aria-label="4分の4拍子">${[3,1].map(step=>glyph(TIME_FOUR_PATH,62+kw-.94*STAFF_SPACE,bottom-step*STAFF_SPACE,'#263d38','time-digit')).join('')}</g>`:'';
+  return `<svg class="score-system" viewBox="0 0 ${width} 167" role="img" aria-label="${group[0]+1}から${group.at(-1)+1}小節">${background}${staffLines(width,bottom)}${clef(16,bottom)}${keySignature(sig,46,bottom)}${time}${music}</svg>`;
+ }).join('');
 }

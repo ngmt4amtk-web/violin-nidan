@@ -1,4 +1,5 @@
 import {tonalKey} from './intonation.mjs';
+import {SONGS,SEVCIK} from './repertoire.mjs';
 // 二段用の短いオリジナル課題。音名の綴り・弦・指は別々に保持する。
 export const STRINGS={
  G:{name:'ソ',midi:55,color:'#347ab4',soft:'#e7f0f9',steps:[-5,-4,-3,-2,-1]},
@@ -15,34 +16,69 @@ export const PATTERNS={
  individual:{label:'音ごとに指の場所を確かめる',intervals:null}
 };
 const NOTE_KANA=['ド','レ','ミ','ファ','ソ','ラ','シ'],PCS=[0,2,4,5,7,9,11];
-export const CHAPTERS=['どの指もくっつかない形','長音階','調号から形を読む','臨時記号と指の変化','短音階・半音階','楽譜を読んで弾く'];
-export const CHAPTER_SUB=['シ♭もファも、最初から4本の弦で','弦ごとに半音の場所を確かめる','形を選んでから、音で確かめる','小節の中で変わる音を読む','4つの形に収まらない動きへ','ヒントを減らして短い曲に挑戦'];
+export const CHAPTERS=['どの指もくっつかない形','始める指と長音階','調号から形を読む','臨時記号を読む','短音階と半音階','曲で確かめる','ヒントなしで読む'];
+export const CHAPTER_SUB=['低い1と、指の間の全音を確かめる','始める指から、使う形を見つける','楽譜を見て答え、同じ音を弾く','変わる音と、元に戻る音を読む','上りと下りで変わる音を聴く','知っている歌を、違う調で弾く','形の図を離れて、楽譜から弾く'];
 export const FORM_LABELS=['①','②','③','④','⑤','⑥','⑦'];
-export const COMMON_MENU=[['fingers','この形をつかむ','A線のシ♭・E線のファ。4本の弦から選ぶ'],['add','指を1本ずつ確認する','1・2・3・4の指を選んで確かめる'],['variety','色々な練習','指を離す・往復する動きを練習する']];
-const VARIETY=[['place','4本の指を置いて、離していく'],['pairs','全パターンの動きを練習する'],['keep','形を保って続ける'],['pivot','開放弦を軸に往復する'],['triples','3音ずつ上り下り']];
+export const COMMON_MENU=[['fingers','指の間隔を確かめる','A線のシ♭・E線のファ。4本の弦から選ぶ'],['add','指を1本ずつ確認する','1・2・3・4の指を選んで確かめる'],['variety','色々な練習','指を離す・往復する動きを練習する']];
+const VARIETY=[['place','4本の指を置いて、離していく'],['pairs','2本の指を組み合わせる'],['keep','形を保って続ける'],['pivot','開放弦と交互に弾く'],['triples','3音ずつ上り下り']];
+const SHAPE_OUTCOMES={fingers:'開放弦と1の指の半音を聴く',add1:'開放弦と低い1を往復する',add2:'1と2の間を全音にする',add3:'2と3の間を全音にする',add4:'3と4の間を全音にする',place:'4から1へ、順に指を離す',pairs:'離れた指へ移っても同じ音に戻る',keep:'音の順番を変えても、指の場所を保つ',pivot:'指を離したあとも、同じ場所に戻る',triples:'3つの音を続けて、音程をそろえる'};
 export function commonSteps(exercise){
  const intro='1〜4の指は、どの隣同士も全音です。開放弦と1の指の間だけは半音です。';
  const copies={fingers:['まずA線のラ・シ♭・ド・レ・ミを弾きます。次の画面でG・D・E線も選べます。','1の指をナット寄りに置きます。手全体をずらさず、2・3・4の場所を確かめます。',intro],add1:['まず1・2・3・4を弾き、次に1だけを半音下げます。A線ではシからシ♭、E線ではファ♯からファです。','2・3・4は同じ場所です。そのあと開放弦と、低い1を往復します。',intro],add2:['0・1・2を弾き、1と2を往復します。','低い1を保ち、2との間を全音あけます。',intro],add3:['1・2・3を弾き、2と3を往復します。','2と3も全音です。近づけすぎないように聴きます。',intro],add4:['2・3・4を弾き、4から1へ下ります。','3と4も全音です。A線の4はミで、ミ♭ではありません。',intro],place:['1・2・3・4を弾いて場所を確かめます。','休符で4本を用意し、4・3・2・1と離していきます。',intro],pairs:['1〜4の指を、2本ずつ組み合わせて往復します。','飛び越す指があっても、同じ音へ戻ります。',intro],keep:['①〜⑦から、繰り返す型を選びます。','型が変わっても、指の場所は同じです。',intro],pivot:['開放弦と、1・2・3・4の指を交互に弾きます。','指を離したあとも、同じ場所に戻ります。',intro],triples:['隣り合う3音で、上ったり下りたりします。','1〜4の指同士の間は、どこも全音です。',intro]};return copies[exercise]||[intro];
 }
-const shapeLessons=['fingers','add1','add2','add3','add4',...VARIETY.map(x=>x[0])].map(exercise=>({id:exercise,type:exercise,exercise,unit:0,pattern:'none',menu:exercise.startsWith('add')?'add':exercise==='fingers'?'fingers':'variety',title:exercise==='fingers'?'この形をつかむ':exercise.startsWith('add')?exercise.at(-1)+'の指を確かめる':VARIETY.find(x=>x[0]===exercise)[1],sub:exercise==='add1'?'開放弦と低い1を往復する':PATTERNS.none.label,steps:commonSteps(exercise)}));
+const shapeLessons=['fingers','add1','add2','add3','add4',...VARIETY.map(x=>x[0])].map(exercise=>({id:exercise,type:exercise,exercise,unit:0,pattern:'none',menu:exercise.startsWith('add')?'add':exercise==='fingers'?'fingers':'variety',title:exercise==='fingers'?'指の間隔を確かめる':exercise.startsWith('add')?exercise.at(-1)+'の指を確かめる':VARIETY.find(x=>x[0]===exercise)[1],sub:SHAPE_OUTCOMES[exercise],steps:commonSteps(exercise)}));
 const lessonSpec=(id,unit,title,sub,steps)=>({id,type:id,unit,title,sub,steps});
+const majorLesson=(id,title,sub,scales)=>({...lessonSpec(id,1,title,sub,[sub,'弦が変わったら、その弦の指の間隔を確かめます。','音階を上って下り、始めの音へ戻ります。']),type:'major',scales});
+const quizLesson=(id,title,sub,deck)=>({...lessonSpec(id,2,title,sub,['調号を見て、指定された弦の形を選びます。','答えと理由を確かめ、同じ楽譜を弾きます。','弾き終わったら、次の問題に進みます。']),type:'keyQuiz',deck});
+const accidentalLesson=(id,title,variant,sub)=>({...lessonSpec(id,3,title,sub,['臨時記号は、同じ小節の同じ高さの音に続けて効きます。','♮は♯や♭を取り消します。小節が変わると調号の音に戻ります。','同じ指を半音動かし、ほかの指の場所を保ちます。']),type:'accidentals',variant});
+const minorLesson=(id,title,form,sub)=>({...lessonSpec(id,4,title,sub,[sub,'イ短調から始め、ホ・ニ・ト短調でも確かめます。','4つの形に当てはめず、音ごとの半音を読みます。']),type:'minor',form});
+const SONG_OUTCOMES={song1:'ヘ長調の出だしで、D線とA線の形を切り替える',song2:'3度下がる音と、順に上る音を読み分ける',song3:'ヘ長調のA線とE線で、低い1の指を使う',song4:'八分音符の上り下りと、休符を読み分ける',song5:'隣り合う音をたどり、付点のリズムを読む',song6:'ヘ長調のG・D・A線で、低音へ戻る形を決める'};
+const SIGHT_OUTCOMES=['D線とA線を行き来し、シ♭を低い1で読む','G・D・A線を移り、シ♭とミ♭を読む','調号なしで、G線とD・A線の形を使い分ける','D線とA線で、3と4がくっつく形を使う','臨時記号から、動かす指を決める','上りのド♯と下りのドを、A線の2で読む'];
+const SOURCE_OUTCOMES={source48:'イ長調の旋律を、反復する区間まで続けて読む',source38:'E線の中で、臨時記号に合わせて4つの形を使う'};
 export const LESSONS=[...shapeLessons,
- lessonSpec('lower4',1,'4だけを低くする','ミとミ♭を区別してから、音階へ',['全部くっつかない形から、4だけを半音下げます。A線ならミからミ♭です。','1・2・3の場所は同じです。4を下げると、3と4が半音になります。','A線の低い1（シ♭）と、低い4（ミ♭）を別々に確かめてから音階へ進みます。']),
- lessonSpec('major',1,'長調の音階','ヘ長調・変ロ長調から、8つの長調へ',['まずヘ長調で、A線のシ♭とE線のファをつなぎます。','始める指は手がかりです。弦が変わったら、その弦の半音の場所を確かめます。','上って下る1オクターヴです。変ロ長調は低い音域と高い音域を選べます。']),
- lessonSpec('keyQuiz',2,'調号から、指の形を選ぶ','12問 · 答えを選んでも楽譜は変わらない',['調号が、どの音を半音上げ下げするか読みます。','表示された弦の1〜4の音から、指の形を選びます。答えを確かめてから弾きます。','最初は形の図・指番号・音名・弦の色を隠しています。必要ならヒントを増やせます。']),
- lessonSpec('accidentals',3,'同じ指で、音を変える','シ♭とシ・ミ♭とミ・ファとファ♯',['同じ小節では、臨時記号は同じ高さの音に続けて効きます。','♮は、その音の♯や♭を取り消します。次の小節では調号の状態に戻ります。','変わる指だけを半音動かします。ほかの指を一緒にずらさないようにします。']),
- lessonSpec('minor',4,'短調の音階','イ・ホ・ニ・ト短調の3種類',['自然的短音階を弾いてから、和声的・旋律的へ進みます。','和声的は第7音を上げます。旋律的は上りで第6・第7音を上げ、下りは自然的に戻します。','指の間が半音3つ分になる場所もあります。4つの形に無理に当てはめず、音ごとに確かめます。']),
- lessonSpec('chromatic',4,'ニからの半音階','同じ指を半音ずつ動かす',['レから1オクターヴ上のレまで、半音ずつ上って下ります。','同じ指で場所を変える音があります。音名と指番号は別々に確かめます。','この課題の上りも下りも♯で書いています。♮で戻る音にも注意します。']),
- lessonSpec('sight',5,'短い曲を、読んで弾く','6問 · 4〜8小節',['先に楽譜をながめ、調号・臨時記号・移弦を確認します。','まずヒントなしで読み、難しいときだけ指番号や音名を表示します。','お手本も使えます。マイクで確かめられるのは音程で、弾いた指や弦・弓の動きではありません。'])
+ ...SEVCIK.filter(s=>s.unit===0).map(s=>({...lessonSpec(s.id,s.unit,s.title,'同じ弦で、変える指を選ぶ',['半音の位置が変わる所を見つけます。','動かす指だけを半音変え、同じ音に戻ります。']),type:'source',sourceId:s.id})),
+ majorLesson('majorOpen','開放弦から始める','2と3がくっつく形で、ト・ニ・イ長調を弾く',['G','D','A']),
+ majorLesson('majorThird','3の指から始める','1と2がくっつく形で、ハ・ト長調を弾く',['C','GHigh']),
+ majorLesson('majorFirst','1の指から始める','3と4がくっつく形で、イ・ホ・ロ長調を弾く',['AFrom1','E','B']),
+ majorLesson('major','2の指から始める','上の弦は、どの指もくっつかない形になる',['F','Bb']),
+ lessonSpec('lower4',1,'4だけを低くする','低い1を保ち、4を半音下げる',['どの指もくっつかない形から、4だけを半音下げます。A線ではミからミ♭です。','1・2・3の場所は同じ。低い4は3と半音になります。']),
+ majorLesson('majorLow4','低い4を使う長音階','高い変ロ長調と変ホ長調で、低い4を使う',['BbHigh','Eb']),
+ quizLesson('quizNatural','調号なしを読む','弦によって違う形を答える','natural'),
+ quizLesson('keyQuiz','フラットの調号を読む','半音下がる音から形を決める','flat'),
+ quizLesson('quizSharp','シャープの調号を読む','半音上がる音から形を決める','sharp'),
+ quizLesson('quizAll','いろいろな調号を読む','調号と弦を見て、4つの形から答える','all'),
+ accidentalLesson('accidentals','シ♭とシを読み分ける','Bb','A線の1を半音動かし、シ♭に戻る小節を読む'),
+ accidentalLesson('accidentalFourth','ミ♭とミを読み分ける','Eb','A線の4を半音動かし、ミ♭とミを読む'),
+ accidentalLesson('accidentalSharp','ファとファ♯を読み分ける','F','E線の1でファとファ♯を弾き、小節線で戻す'),
+ minorLesson('minor','自然的短音階','naturalMinor','半音がどこにあるかを、上りと下りで確かめる'),
+ minorLesson('minorHarmonic','和声的短音階','harmonicMinor','第7音だけを半音上げる'),
+ minorLesson('minorMelodic','旋律的短音階','melodicMinor','上りは第6・第7音を上げ、下りで戻す'),
+ lessonSpec('chromatic',4,'ニからの半音階','同じ指で、半音ずつ場所を変える',['レから上のレまで半音ずつ進み、戻ります。','同じ指でも、音ごとに場所が変わります。','♯と♮を読み、半音の幅を耳で確かめます。']),
+ ...SONGS.map(s=>({...lessonSpec(s.id,5,s.title,SONG_OUTCOMES[s.id],['調号を読み、使う弦の指の形を思い浮かべます。','まず1音ずつ音程を確かめ、次はテンポで通します。','弾けたら、指番号を隠して同じ曲を読みます。']),type:'song',songId:s.id})),
+ ...['ヘ長調で読む','変ロ長調で読む','ハ長調で読む','ホ長調で読む','4つの形を切り替える','ニ短調で読む'].map((title,i)=>({...lessonSpec(i?'sight'+(i+1):'sight',6,title,SIGHT_OUTCOMES[i],['調号・臨時記号・移弦する所を先に確かめます。','ヒントなしで読み、困ったときは指番号を表示します。','止まった小節を覚えて、もう一度確かめます。']),type:'sight',problem:String(i+1)})),
+ ...SEVCIK.filter(s=>s.unit===6).map(s=>({...lessonSpec(s.id,s.unit,s.title,SOURCE_OUTCOMES[s.id],['調号と臨時記号を読み、使う指を確かめます。','1音ずつ弾いてから、テンポで通してみます。']),type:'source',sourceId:s.id}))
 ];
-export function chapterItems(unit){const ls=LESSONS.filter(l=>l.unit===unit);return unit===0?COMMON_MENU.map(([menu,title,sub])=>menu==='fingers'?ls[0]:{menu,title,sub,children:ls.filter(l=>l.menu===menu)}):ls;}
+export function chapterItems(unit){return LESSONS.filter(l=>l.unit===unit);}
+export function quizDeck(lesson){return QUIZZES.map((q,i)=>({q,id:String(i+1)})).filter(({q})=>lesson.deck==='natural'?q.sig===0:lesson.deck==='flat'?q.sig<0:lesson.deck==='sharp'?q.sig>0:true).map(x=>x.id);}
 export function lessonPage(){return null;}
 const choose=(v,a,f)=>a.includes(String(v))?String(v):f;
-export function normalizeOptions(l,raw={},bpm=60){raw=raw&&typeof raw==='object'?raw:{};const o={string:choose(raw.string,Object.keys(STRINGS),'A'),mode:choose(raw.mode,['wait','continuous'],'wait'),mic:typeof raw.mic==='boolean'?raw.mic:true,bpm:Number.isFinite(+raw.bpm)&&+raw.bpm>=40&&+raw.bpm<=180?Math.round(+raw.bpm):bpm,row:choose(raw.row,['1','2','3','4','5','6','7','random'],'1'),resolvedRow:Number(choose(raw.resolvedRow,['1','2','3','4','5','6','7'],'1')),scale:choose(raw.scale,Object.keys(MAJORS),'F'),minor:choose(raw.minor,Object.keys(MINORS),'A'),form:choose(raw.form,['naturalMinor','harmonicMinor','melodicMinor'],'naturalMinor'),problem:choose(raw.problem,Array.from({length:l.type==='keyQuiz'?QUIZZES.length:6},(_,i)=>String(i+1)),'1'),variant:choose(raw.variant,['Bb','Eb','F'],'Bb'),help:choose(raw.help,['full','finger','read'],['keyQuiz','sight'].includes(l.type)?'read':'full'),answer:choose(raw.answer,['none','12','23','34'],''),answerChecked:raw.answerChecked===true};if(o.mic)o.mode='wait';return o;}
+export function normalizeOptions(l,raw={},bpm=60){
+ raw=raw&&typeof raw==='object'?raw:{};
+ const scales=l.scales||Object.keys(MAJORS),deck=l.type==='keyQuiz'?quizDeck(l):[];
+ const o={string:choose(raw.string,Object.keys(STRINGS),'A'),mode:choose(raw.mode,['wait','continuous'],'wait'),mic:typeof raw.mic==='boolean'?raw.mic:true,bpm:Number.isFinite(+raw.bpm)&&+raw.bpm>=40&&+raw.bpm<=180?Math.round(+raw.bpm):bpm,
+ row:choose(raw.row,['1','2','3','4','5','6','7','random'],'1'),resolvedRow:Number(choose(raw.resolvedRow,['1','2','3','4','5','6','7'],'1')),
+ scale:choose(raw.scale,scales,scales[0]),songKey:choose(raw.songKey,['F','Bb','C'],'F'),minor:choose(raw.minor,Object.keys(MINORS),'A'),form:l.form||choose(raw.form,['naturalMinor','harmonicMinor','melodicMinor'],'naturalMinor'),
+ problem:l.problem||(deck.length?choose(raw.problem,deck,deck[0]):'1'),variant:l.variant||choose(raw.variant,['Bb','Eb','F'],'Bb'),help:choose(raw.help,['full','finger','read'],['keyQuiz','sight'].includes(l.type)||l.unit===6?'read':'full'),
+ quizOrder:choose(raw.quizOrder,['ordered','random'],'ordered'),answer:choose(raw.answer,['none','12','23','34'],''),answerChecked:raw.answerChecked===true};
+ if(o.mic)o.mode='wait';return o;
+}
 export const MAJORS={
- F:{label:'ヘ長調 · ファから',pc:5,sig:-1,seq:'D2:F4 D3:G4 A0:A4 A1:Bb4 A2:C5 A3:D5 A4:E5 E1:F5'},
- Bb:{label:'変ロ長調 · 低いシ♭から',pc:10,sig:-2,seq:'G2:Bb3 G3:C4 D0:D4 D1:Eb4 D2:F4 D3:G4 A0:A4 A1:Bb4'},
- BbHigh:{label:'変ロ長調 · 高いシ♭から',pc:10,sig:-2,seq:'A1:Bb4 A2:C5 A3:D5 A4:Eb5 E1:F5 E2:G5 E3:A5 E4:Bb5'},
+ AFrom1:{label:'イ長調',pc:9,sig:3,seq:'G1:A3 G2:B3 G3:C#4 G4:D4 D1:E4 D2:F#4 D3:G#4 D4:A4'},
+ GHigh:{label:'ト長調',pc:7,sig:1,seq:'D3:G4 D4:A4 A1:B4 A2:C5 A3:D5 E0:E5 E1:F#5 E2:G5'},
+ B:{label:'ロ長調',pc:11,sig:5,seq:'A1:B4 A2:C#5 A3:D#5 A4:E5 E1:F#5 E2:G#5 E3:A#5 E4:B5'},
+ F:{label:'ヘ長調',pc:5,sig:-1,seq:'D2:F4 D3:G4 A0:A4 A1:Bb4 A2:C5 A3:D5 A4:E5 E1:F5'},
+ Bb:{label:'変ロ長調',pc:10,sig:-2,seq:'G2:Bb3 G3:C4 D0:D4 D1:Eb4 D2:F4 D3:G4 A0:A4 A1:Bb4'},
+ BbHigh:{label:'変ロ長調・高い音域',pc:10,sig:-2,seq:'A1:Bb4 A2:C5 A3:D5 A4:Eb5 E1:F5 E2:G5 E3:A5 E4:Bb5'},
  C:{label:'ハ長調',pc:0,sig:0,seq:'G3:C4 D0:D4 D1:E4 D2:F4 D3:G4 A0:A4 A1:B4 A2:C5'},
  G:{label:'ト長調',pc:7,sig:1,seq:'G0:G3 G1:A3 G2:B3 G3:C4 D0:D4 D1:E4 D2:F#4 D3:G4'},
  D:{label:'ニ長調',pc:2,sig:2,seq:'D0:D4 D1:E4 D2:F#4 D3:G4 A0:A4 A1:B4 A2:C#5 A3:D5'},
@@ -56,11 +92,9 @@ export const MINORS={
  D:{label:'ニ短調',pc:2,sig:-1,seq:'D0:D4 D1:E4 D2:F4 D3:G4 A0:A4 A1:Bb4 A2:C5 A3:D5'},
  G:{label:'ト短調',pc:7,sig:-2,seq:'G0:G3 G1:A3 G2:Bb3 G3:C4 D0:D4 D1:Eb4 D2:F4 D3:G4'}
 };
-export const QUIZZES=[
- ['A',-1,'none'],['E',0,'none'],['D',-2,'none'],['G',-3,'none'],['A',0,'12'],['D',0,'12'],['G',1,'23'],['A',2,'23'],['G',3,'34'],['D',4,'34'],['A',4,'34'],['E',3,'23']
-].map(([string,sig,answer],i)=>({string,sig,answer,label:`その${i+1} · ${string}線`}));
+export const QUIZZES=[-1,-2,-3,0,1,2,3,4,5].flatMap(sig=>Object.keys(STRINGS).map(string=>({string,sig,answer:signaturePattern(string,sig)}))).filter(q=>['none','12','23','34'].includes(q.answer)).map((q,i)=>({...q,id:String(i+1)}));
 export function signatureAlteration(letter,sig=0){const order=sig>0?[3,0,4,1,5,2,6]:[6,2,5,1,4,0,3];return order.slice(0,Math.abs(sig)).includes(letter)?Math.sign(sig):0;}
-function signaturePattern(string,sig){const intervals=[0,...STRINGS[string].steps.slice(1).map(step=>{const d=30+step,l=(d%7+7)%7;return (Math.floor(d/7)+1)*12+PCS[l]+signatureAlteration(l,sig)-STRINGS[string].midi;})];return Object.keys(PATTERNS).find(p=>JSON.stringify(PATTERNS[p].intervals)===JSON.stringify(intervals))||'individual';}
+export function signaturePattern(string,sig){const intervals=[0,...STRINGS[string].steps.slice(1).map(step=>{const d=30+step,l=(d%7+7)%7;return (Math.floor(d/7)+1)*12+PCS[l]+signatureAlteration(l,sig)-STRINGS[string].midi;})];return Object.keys(PATTERNS).find(p=>JSON.stringify(PATTERNS[p].intervals)===JSON.stringify(intervals))||'individual';}
 export function spelledNote(string,finger,spelling,beats=1,extra={}){const m=/^([A-G])([#b]?)(\d)$/.exec(spelling);if(!m)throw new Error('Bad spelling '+spelling);const letter='CDEFGAB'.indexOf(m[1]),octave=+m[3],alteration=m[2]==='#'?1:m[2]==='b'?-1:0,midi=(octave+1)*12+PCS[letter]+alteration;return {string,finger,beats,letter,alteration,midi,step:octave*7+letter-30,name:NOTE_KANA[letter]+(alteration===1?'♯':alteration===-1?'♭':''),pattern:'individual',...extra};}
 export function makeNote(string,finger,beats=1,extra={}){const step=STRINGS[string].steps[finger],d=30+step,letter=(d%7+7)%7,pattern=extra.pattern||'none',midi=STRINGS[string].midi+PATTERNS[pattern].intervals[finger],alteration=midi-((Math.floor(d/7)+1)*12+PCS[letter]);return {string,finger,beats,step,letter,alteration,midi,name:NOTE_KANA[letter]+(alteration===1?'♯':alteration===-1?'♭':''),pattern,...extra};}
 export const makeRest=beats=>({rest:true,beats,name:'休み'});
@@ -68,8 +102,8 @@ function decode(seq,spec,form='major'){return seq.split(' ').map(token=>{const [
 function scaleExercise(spec,form='major'){const natural=decode(spec.seq,spec,form),up=natural.map((n,i)=>{if((form==='harmonicMinor'&&i===6)||(form==='melodicMinor'&&(i===5||i===6))){return {...n,midi:n.midi+1,alteration:n.alteration+1,name:NOTE_KANA[n.letter]+(n.alteration+1===1?'♯':''),pattern:'individual'};}return n;});const down=(form==='melodicMinor'?natural:up).slice().reverse();return [...up,...down].map(n=>form==='major'?n:{...n,pattern:'individual'});}
 const KEEP=[[0,1,2,3,4,3,2,1],[0,1,0,2,0,3,0,4],[1,2,3,4,3,2,1,0],[1,3,2,4,4,2,3,1],[4,3,2,1,1,2,3,4],[1,2,1,3,1,4,3,2],[0,1,2,3,1,2,3,4,0,1,2,1,1,2,3,2]];
 export function quizFor(options){return QUIZZES[+options.problem-1]||QUIZZES[0];}
-export function makeExercise(type,raw={}){const l=LESSONS.find(l=>l.id===type)||LESSONS[0],o=normalizeOptions(l,raw),n=(f,b=1)=>makeNote(o.string,f,b),shapeSeq=seq=>seq.map(f=>n(f));let notes=[];
- if(type==='fingers')notes=[0,1,2,3,4,3,2,1,0].map(f=>n(f,4));
+export function makeExercise(id,raw={}){const l=LESSONS.find(l=>l.id===id)||LESSONS[0],type=l.type,o=normalizeOptions(l,raw),n=(f,b=1)=>makeNote(o.string,f,b),shapeSeq=seq=>seq.map(f=>n(f));let notes=[];
+ if(type==='fingers')notes=[...shapeSeq([0,1,2,3,4,3,2,1]),n(0,4)];
  else if(type==='add1')notes=[...[1,2,3,4].map(f=>makeNote(o.string,f,1,{pattern:'12'})),...shapeSeq([1,2,3,4,0,1,0,1,2,1,0,1])];
  else if(type==='add2')notes=shapeSeq([0,1,2,1,2,1,2,1,2,1,0,1]);
  else if(type==='add3')notes=shapeSeq([1,2,3,2,3,2,3,2,3,2,1,2]);
@@ -79,6 +113,8 @@ export function makeExercise(type,raw={}){const l=LESSONS.find(l=>l.id===type)||
  else if(type==='keep'){const row=+(o.row==='random'?o.resolvedRow:o.row)-1;notes=shapeSeq(KEEP[row]);if(row!==6)notes=[...notes,...notes,n(0,4)];}
  else if(type==='pivot')notes=[...shapeSeq([0,1,0,2,0,3,0,4,0,4,0,3,0,2,0,1]),n(0,4)];
  else if(type==='triples')notes=[...shapeSeq([0,1,2,1,1,2,3,2,2,3,4,3,4,3,2,3,3,2,1,2,2,1,0,1]),n(0,4)];
+ else if(type==='song'){const song=SONGS.find(s=>s.id===l.songId),v=song.variants[o.songKey];notes=v.notes.map(x=>x.rest?makeRest(x.beats):spelledNote(x.string,x.finger,x.spelling,x.beats,{signature:v.signature,key:tonalKey(v.tonic),pattern:signaturePattern(x.string,v.signature),slurs:x.slurs}));}
+ else if(type==='source'){const source=SEVCIK.find(s=>s.id===l.sourceId);notes=source.playOrder.flatMap((bar,playBar)=>source.bars[bar].map(x=>x.rest?{...makeRest(x.beats),signature:source.signature,sourceBar:bar+1}:spelledNote(x.string,x.finger,x.spelling,x.beats,{signature:source.signature,key:tonalKey(source.tonic),pattern:'individual',sourceBar:bar+1,printedFinger:x.printedFinger,slurs:x.slurs})));}
  else if(type==='major')notes=scaleExercise(MAJORS[o.scale]);
  else if(type==='lower4')notes=['none','34low','none','34low'].flatMap(pattern=>[1,2,3,4].map(f=>makeNote(o.string,f,1,{pattern})));
  else if(type==='minor')notes=scaleExercise(MINORS[o.minor],o.form);
